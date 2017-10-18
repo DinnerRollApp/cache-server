@@ -1,0 +1,16 @@
+{
+  "name": "DinnerRoll-API",
+  "version": "1.0.0",
+  "description": "An API because I can never decide where to eat",
+  "main": "server.js",
+  "repository": "git@github.com:DinnerRollApp/cache-server.git",
+  "author": "Michael Hulet <michael@hulet.tech>",
+  "license": "AGPL-3.0",
+  "private": true,
+  "dependencies": {
+    "express": "^4.16.2"
+  },
+  "engines": {
+    "node": ">=8.7.0"
+  }
+}
