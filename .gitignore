@@ -161,3 +161,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Runtime testing artifacts
+caches/
+caches/*
+
+# macOS-specific files
+.DS_Store
+/**/.DS_Store

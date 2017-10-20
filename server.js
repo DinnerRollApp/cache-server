@@ -1,17 +1,14 @@
 "use strict";
+
 const express = require("express");
 const filesystem = require("fs");
-const dinnerRoll = require("./dinnerroll.js");
+const dinnerRoll = require("./endpoints");
 
 const app = express();
 
-app.get("/", dinnerRoll.random);
-app.get("/random", dinnerRoll.random);
+dinnerRoll.listen(app);
 
-app.get("/categories", (request, response) => {
-    dinnerRoll.respondWithPlaceholder(request, response);
-});
-
-app.listen(3000, () => {
-    console.info("Express is listening");
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.info(`DinnerRoll Server is listening at http://localhost:${port}`);
 });
