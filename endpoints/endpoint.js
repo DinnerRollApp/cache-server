@@ -1,23 +1,47 @@
 "use strict";
 
-require("../utilities.js");
+require("../utilities");
 
-module.exports.Endpoint = class {
-    constructor(path = "", shadow){
-        this.path = `/${path}`;
-        let handler = module.exports.Endpoint.prototype.respond;
-        if(shadow instanceof module.exports.Endpoint){
-            handler = shadow.respond;
-        }
-        else if(typeof shadow === "function"){
-            handler = shadow;
-        }
-        this.respond = handler.unbound().bound(this);
+const instanceTest = "EndpointObject";
+
+function requestTest(request, response, next){
+    if(this.responders[request.method.toLowerCase()] != "function"){
+        const message = `Method ${request.method} of endpoint ${request.path} is not implemented`
+        response.type("text/plain").status(501).send(message);
     }
-    respond(request, response){
-        response.status(501).send(`Endpoint "${this.path}" is not implemented`);
+    else{
+        next();
+    }
+}
+
+module.exports.Endpoint = class extends require("express").Router{
+    constructor(path = ""){
+        super()
+        this.path = path.startsWith("/") ? path : "/" + path;
+        this.responders = {}
+        this.listen = module.exports.Endpoint.prototype.listen.reboundTo(this);
+        Object.defineProperty(this, "__EndpointInstanceTest", {value: instanceTest, enumerable: false, configurable: false, writable: false});
     }
     listen(server){
-        server.get(this.path, this.respond);
+        for(const responder in this.responders){
+            if(Function.isFunction(this.responders[responder]) && Function.isFunction(this[responder])){
+                let subpath = "/";
+                if(typeof this.responders[responder].subpath === "string"){
+                    subpath = this.responders[responder].subpath.startsWith("/") ? this.responders[responder].subpath : "/" + this.responders[responder].subpath;
+                }
+                //FIXME: Logic error here
+                this[responder](subpath, this.responders[responder].reboundTo(this));
+            }
+            else{
+                throw new TypeError(`"${responder}" is not a valid HTTP responder`);
+            }
+        }
+        this.use(requestTest.boundTo(this));
+        server.use(this.path, this);
+        this.server = server;
     }
+}
+
+module.exports.Endpoint.isInstance = (test) => {
+    return test && test.__EndpointInstanceTest === instanceTest;
 }
