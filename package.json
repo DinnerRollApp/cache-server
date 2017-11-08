@@ -8,9 +8,10 @@
   "license": "AGPL-3.0",
   "private": true,
   "dependencies": {
+    "envalid": "^4.1.1",
     "express": "^4.16.2"
   },
   "engines": {
-    "node": ">=8.7.0"
+    "node": ">=9.0.0"
   }
 }
