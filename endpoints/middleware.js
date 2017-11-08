@@ -1,3 +1,5 @@
+"use strict";
+
 const {RequestError} = require("./error.js");
 const utilities = require("../utilities");
 

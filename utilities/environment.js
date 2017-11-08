@@ -1,3 +1,5 @@
+"use strict";
+
 const envalid = require("envalid");
 
 const keyPrefix = "DINNERROLL_";
