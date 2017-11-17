@@ -3,15 +3,13 @@
 const filesystem = require("fs");
 const {URL} = require("url");
 const {Endpoint} = require("./endpoint.js");
+const foursquare = require("../foursquare");
 
 module.exports = new Endpoint("categories");
 
 module.exports.responders.get = function(request, response){
-    const locator = new URL("caches/categories.json", `file://${__dirname}`);
-    if(filesystem.existsSync(locator)){
-        response.sendFile(locator.pathname);
-    }
-    else{
-        response.send({error: "No cache found"});
-    }
+    foursquare.categories((error, foursquareResponse, body) => {
+        console.info(error, foursquareResponse);
+        response.type("application/json").send(body);
+    });
 };

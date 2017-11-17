@@ -4,6 +4,7 @@ const utilities = require("../utilities");
 const defaultMiddleware = require("./middleware.js");
 
 const instanceTest = "EndpointObject";
+const instanceTestProperty = "__EndpointInstanceTest";
 
 module.exports.Endpoint = class extends require("express").Router{
     constructor(path = ""){
@@ -11,7 +12,7 @@ module.exports.Endpoint = class extends require("express").Router{
         this.path = path.startsWith("/") ? path : "/" + path;
         this.responders = {}
         this.listen = module.exports.Endpoint.prototype.listen.reboundTo(this);
-        Object.defineProperty(this, "__EndpointInstanceTest", {value: instanceTest, enumerable: false, configurable: false, writable: false});
+        Object.defineProperty(this, instanceTestProperty, {value: instanceTest, enumerable: false, configurable: false, writable: false});
     }
     listen(server){
         this.use(defaultMiddleware.handlerExists.boundTo(this));
@@ -32,8 +33,8 @@ module.exports.Endpoint = class extends require("express").Router{
         this.server = server;
         server.use(this.path, this);
     }
-}
+};
 
 module.exports.Endpoint.isInstance = (test) => {
-    return test && test.__EndpointInstanceTest === instanceTest;
-}
+    return test && test[instanceTestProperty] === instanceTest;
+};

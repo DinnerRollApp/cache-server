@@ -5,4 +5,4 @@ module.exports.RequestError = class extends Error{
         super(message);
         this.status = HTTPStatus;
     }
-}
+};
