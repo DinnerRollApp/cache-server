@@ -21,6 +21,5 @@ module.exports.constructRequest = (path, params) => {
         }
         endpoint.searchParams.append(key, params[key]);
     }
-    console.info(endpoint.href);
     return endpoint;
 };

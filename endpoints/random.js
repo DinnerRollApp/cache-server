@@ -4,12 +4,13 @@ const {Endpoint} = require("./endpoint.js");
 const middleware = require("./middleware.js");
 const {ValidationError} = require("./error.js");
 const foursquare = require("../foursquare");
+const utilities = require("../utilities");
 
 const random = new Endpoint("random");
 
 random.responders.get = function(request, response){
-    foursquare.search({latitude: request.latitude, longitude: request.longitude, radius: request.radius, intent: "browse", categoryId: request.categories ? request.categories : "4d4b7105d754a06374d81259"}, (error, foursquareResponse, body) => {
-        response.type("application/json").send(body);
+    foursquare.search({latitude: request.latitude, longitude: request.longitude, radius: request.radius, intent: "browse", categoryId: request.categories.length > 0 ? request.categories.join(",") : "4d4b7105d754a06374d81259"}, (error, foursquareResponse, body) => {
+        response.send(JSON.parse(body)["response"]["venues"].randomElement);
     });
 };
 
@@ -19,5 +20,14 @@ function floatingPointConvertible(value){
 }
 
 random.use(middleware.requireParameters({latitude: floatingPointConvertible, longitude: floatingPointConvertible, radius: floatingPointConvertible}));
+random.use((request, response, next) => {
+    if(request.query.categories){
+        request.categories = request.query.categories.split(",");
+    }
+    else{
+        request.categories = [];
+    }
+    next();
+});
 
 module.exports = random;
