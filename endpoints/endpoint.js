@@ -16,8 +16,7 @@ module.exports.Endpoint = class extends require("express").Router{
     }
     listen(server){
         this.use(defaultMiddleware.handlerExists.boundTo(this));
-        this.use(defaultMiddleware.containsRequiredParameters.boundTo(this));
-        this.use(defaultMiddleware.sendError);
+        this.use(defaultMiddleware.matchesRequiredParameters.boundTo(this));
         for(const responder in this.responders){
             if(Function.isFunction(this.responders[responder]) && Function.isFunction(this[responder])){
                 let subpath = "/";
