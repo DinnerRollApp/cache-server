@@ -54,5 +54,5 @@ module.exports.matchesRequiredParameters = function(request, response, next){
 };
 
 module.exports.sendError = (error, request, response, next) => {
-    response.status(error instanceof RequestError ? error.status : 500).send({error: error.message});
+    response.status(typeof error.status === "number" ? error.status : 500).send({error: error.message});
 };
