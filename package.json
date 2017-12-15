@@ -11,6 +11,7 @@
     "envalid": "^4.1.1",
     "express": "^4.16.2",
     "node-redis": "^0.1.7",
+    "redis": "^2.8.0",
     "request": "^2.83.0"
   },
   "engines": {

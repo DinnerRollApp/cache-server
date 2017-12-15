@@ -25,11 +25,28 @@ const format = (data) => {
 
 module.exports = new Endpoint("categories");
 
+const responseType = "application/json";
+
+module.exports.middleware.push((request, response, next) => {
+    request.cache.get("categories", (error, result) => {
+        if(result){
+            // There's a response cached
+            response.type(responseType).send(result);
+        }
+        else{
+            // Cache miss, download from network
+            next();
+        }
+    });
+});
+
 module.exports.responders.get = function(request, response){
     foursquare.categories((error, foursquareResponse, body) => {
-        // This appears complicated, but it gets all subcategories to the "Food" category, transforms the data to make all category objects siblings in an array instead of nodes in a nested object tree, and sends it
-        response.send(format(JSON.parse(body)["response"][categoriesKey].filter((category) => {
+        // This appears complicated, but it gets all subcategories to the "Food" category, transforms the data to make all category objects siblings in an array instead of nodes in a nested object tree, and converts it back to a string
+        const result = JSON.stringify(format(JSON.parse(body)["response"][categoriesKey].filter((category) => {
             return category.id === "4d4b7105d754a06374d81259" || category.name.toUpperCase() === "FOOD";
         })[0]));
+        request.cache.set("categories", result);
+        response.type(responseType).send(result);
     });
 };

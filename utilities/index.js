@@ -3,6 +3,7 @@
 module.exports.function = require("./function.js");
 module.exports.environment = require("./environment.js");
 module.exports.array = require("./array.js");
+module.exports.cache = require("./cache.js");
 
 module.exports.parseBool = (value) => {
     switch(typeof value){

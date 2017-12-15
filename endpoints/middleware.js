@@ -53,6 +53,11 @@ module.exports.matchesRequiredParameters = function(request, response, next){
     next();
 };
 
+module.exports.connectCache = function(request, response, next){
+    request.cache = require("../utilities").cache;
+    next();
+};
+
 module.exports.sendError = (error, request, response, next) => {
     response.status(typeof error.status === "number" ? error.status : 500).send({error: error.message});
 };

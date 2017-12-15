@@ -8,15 +8,20 @@ const instanceTestProperty = "__EndpointInstanceTest";
 
 module.exports.Endpoint = class extends require("express").Router{
     constructor(path = ""){
-        super()
+        super();
         this.path = path.startsWith("/") ? path : "/" + path;
-        this.responders = {}
+        this.responders = {};
+        this.middleware = [];
         this.listen = module.exports.Endpoint.prototype.listen.reboundTo(this);
         Object.defineProperty(this, instanceTestProperty, {value: instanceTest, enumerable: false, configurable: false, writable: false});
     }
     listen(server){
         this.use(defaultMiddleware.handlerExists.boundTo(this));
         this.use(defaultMiddleware.matchesRequiredParameters.boundTo(this));
+        this.use(defaultMiddleware.connectCache.boundTo(this));
+        for(const transformer of this.middleware){
+            this.use(transformer);
+        }
         for(const responder in this.responders){
             if(Function.isFunction(this.responders[responder]) && Function.isFunction(this[responder])){
                 let subpath = "/";

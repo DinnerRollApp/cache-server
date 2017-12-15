@@ -19,7 +19,6 @@ module.exports.constructRequest = (path, params, basePath = "venues") => {
             }
             params[key] = str.slice(0, -1);
         }
-        //console.info(`Appending ${params[key]} to ${key}`);
         endpoint.searchParams.append(key, params[key]);
     }
     return endpoint;
