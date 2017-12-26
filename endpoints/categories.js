@@ -4,10 +4,11 @@ const filesystem = require("fs");
 const {URL} = require("url");
 const {Endpoint} = require("./endpoint.js");
 const foursquare = require("../foursquare");
+const utilities = require("../utilities");
 
 const categoriesKey = "categories";
 
-const format = (data) => {
+function format(data){
     const categories = data[categoriesKey];
     let all = [];
     if(Array.isArray(categories)){
@@ -27,26 +28,23 @@ module.exports = new Endpoint("categories");
 
 const responseType = "application/json";
 
-module.exports.middleware.push((request, response, next) => {
-    request.cache.get("categories", (error, result) => {
-        if(result){
-            // There's a response cached
-            response.type(responseType).send(result);
-        }
-        else{
-            // Cache miss, download from network
-            next();
-        }
-    });
+module.exports.middleware.push(async (request, response, next) => {
+    const cached = await utilities.cache.get(categoriesKey);
+    if(cached){
+        // Send the cached version
+        response.type(responseType).send(cached);
+    }
+    else{
+        // Cache miss
+        next();
+    }
 });
 
-module.exports.responders.get = function(request, response){
-    foursquare.categories((error, foursquareResponse, body) => {
-        // This appears complicated, but it gets all subcategories to the "Food" category, transforms the data to make all category objects siblings in an array instead of nodes in a nested object tree, and converts it back to a string
-        const result = JSON.stringify(format(JSON.parse(body)["response"][categoriesKey].filter((category) => {
-            return category.id === "4d4b7105d754a06374d81259" || category.name.toUpperCase() === "FOOD";
-        })[0]));
-        request.cache.set("categories", result);
-        response.type(responseType).send(result);
-    });
+module.exports.responders.get = async function(request, response){
+    const rawData = await foursquare.categories(); // The below syntax gets weird at runtime with an inline await
+    const result = JSON.stringify(format(rawData["response"][categoriesKey].filter((category) => {
+        return category.id === "4d4b7105d754a06374d81259" || category.name.toUpperCase() === "FOOD";
+    })[0]));
+    utilities.cache.set(categoriesKey, result);
+    response.type(responseType).send(result);
 };

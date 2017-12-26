@@ -21,5 +21,5 @@ module.exports.constructRequest = (path, params, basePath = "venues") => {
         }
         endpoint.searchParams.append(key, params[key]);
     }
-    return endpoint;
+    return {uri: endpoint.href, method: "GET", json: true};
 };

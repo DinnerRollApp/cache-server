@@ -18,3 +18,11 @@ Array.prototype.shuffle = function(){
         [this[current], this[random]] = [this[random], this[current]];
     }
 };
+
+Array.prototype.insert = function(object, index = 0){
+    this.splice(index, 0, object);
+}
+
+Array.prototype.removeRandomElement = function(){
+    return this.splice(this.randomIndex, 1)[0];
+}

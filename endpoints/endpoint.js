@@ -18,7 +18,6 @@ module.exports.Endpoint = class extends require("express").Router{
     listen(server){
         this.use(defaultMiddleware.handlerExists.boundTo(this));
         this.use(defaultMiddleware.matchesRequiredParameters.boundTo(this));
-        this.use(defaultMiddleware.connectCache.boundTo(this));
         for(const transformer of this.middleware){
             this.use(transformer);
         }
