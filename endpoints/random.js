@@ -111,7 +111,7 @@ random.responders.get = async function(request, response){
         let dataIsFresh = false;
         if(cached){
             console.info("Venue was found in cache");
-            dataIsFresh = await utilities.cache.wasSetRecently(choice[IDKey]);
+            dataIsFresh = await utilities.cache.wasSetRecently(choice[IDKey], (new Date().getTime() / 1000) % 60); // Data is fresh if it was set during the current minute
         }
         let full = cached;
 
