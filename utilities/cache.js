@@ -23,12 +23,15 @@ module.exports.set = (key, value, timeout = module.exports.defaultLifetime) => {
     cache.set(key, value, "EX", timeout); // We want to expire all keys after they live for a week, unless otherwise specified
 };
 
-module.exports.cacheLifeRemaining = cache.ttl;
-module.exports.wasSetRecently = async (key, callback, interval = 60, lifetime = module.exports.defaultLifetime) => {
+module.exports.cacheLifeRemaining = cache.ttlAsync.boundTo(cache);
+module.exports.wasSetRecently = async (key, interval = 60, lifetime = module.exports.defaultLifetime) => {
     try{
-        return lifetime - await cache.ttlAsync() < interval;
+        const lifeLeft = await cache.ttlAsync(key);
+        console.info(lifetime - lifeLeft);
+        return lifetime - lifeLeft < interval;
     }
     catch(error){
+        console.log(`Failed to check cache lifetime with error: ${error.message}`);
         return false;
     }
 };

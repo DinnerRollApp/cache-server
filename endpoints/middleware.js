@@ -2,6 +2,7 @@
 
 const {RequestError, ValidationError} = require("./error.js");
 const utilities = require("../utilities");
+const HTTPStatus = require("http-status-codes");
 
 module.exports.handlerExists = function(request, response, next){
     const errors = [];
@@ -54,5 +55,5 @@ module.exports.matchesRequiredParameters = function(request, response, next){
 };
 
 module.exports.sendError = (error, request, response, next) => {
-    response.status(typeof error.status === "number" ? error.status : 500).send({error: error.message});
+    response.status(typeof error.status === "number" ? error.status : HTTPStatus.INTERNAL_SERVER_ERROR).send({error: error.message});
 };
