@@ -27,11 +27,9 @@ module.exports.cacheLifeRemaining = cache.ttlAsync.boundTo(cache);
 module.exports.wasSetRecently = async (key, interval = 60, lifetime = module.exports.defaultLifetime) => {
     try{
         const lifeLeft = await cache.ttlAsync(key);
-        console.info(lifetime - lifeLeft);
         return lifetime - lifeLeft < interval;
     }
     catch(error){
-        console.log(`Failed to check cache lifetime with error: ${error.message}`);
         return false;
     }
 };

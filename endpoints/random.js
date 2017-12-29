@@ -26,7 +26,6 @@ async function downloadDataFor(venues){
         return result;
     }
     catch(error){
-        console.info(error.message);
         return null;
     }
 }
@@ -99,40 +98,31 @@ random.responders.get = async function(request, response){
     allChoices.shuffle();
     
     const IDKey = "id";
-    const originalLength = allChoices.length;
-    let current = 0;
     while(allChoices.length > 0){
 
         const choice = allChoices.shift();
 
-        console.info(`Inspecting venue ${choice["id"]} (${++current}/${originalLength})`);
-
         const cached = JSON.parse(await utilities.cache.get(choice[IDKey]));
         let dataIsFresh = false;
         if(cached){
-            console.info("Venue was found in cache");
             dataIsFresh = await utilities.cache.wasSetRecently(choice[IDKey], (new Date().getTime() / 1000) % 60); // Data is fresh if it was set during the current minute
         }
         let full = cached;
 
         if((request.openNow && !dataIsFresh) || !cached){ // We're gonna eventually download some new data, so we want this to get updated
-            console.info("Cached data is bad");
             allChoices.unshift(choice);
         }
 
         if(request.openNow && !dataIsFresh){ // We have to get new data because the venue must be open and our cache data is stale
-            console.info("Donwloading new data due to stale data");
             full = await downloadDataFor(allChoices.splice(0, foursquare.venueInfo.maximumVenues));
         }
         else if(!cached){ // We're downloading new data because this venue hasn't been cached yet
-            console.info("Downloading new data due to cache miss");
             await downloadDataFor(await findCacheMisses(allChoices));
             continue;
         }
 
         full = chooseRestaurantFrom(full, request);
         if(full){
-            console.info(`Chose venue ${choice["id"]}`);
             response.send(full);
             return;
         }
