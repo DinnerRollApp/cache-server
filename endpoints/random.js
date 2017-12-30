@@ -9,7 +9,7 @@ const HTTPStatus = require("http-status-codes");
 
 const random = new Endpoint("random");
 
-function addToCache(venue){
+function addVenueToCache(venue){
     utilities.cache.set(venue["id"], JSON.stringify(venue));
 }
 
@@ -18,10 +18,10 @@ async function downloadDataFor(venues){
         const result = await foursquare.venueInfo(venues);
         //return result;
         if(Array.isArray(result)){
-            result.forEach(addToCache);
+            result.forEach(addVenueToCache);
         }
         else{
-            addToCache(result);
+            addVenueToCache(result);
         }
         return result;
     }
@@ -81,27 +81,17 @@ async function findCacheMisses(choices, startIndex = 0){
 }
 
 random.responders.get = async function(request, response){
-    const parameters = {latitude: request.latitude, longitude: request.longitude, radius: request.radius, intent: "browse", categoryId: request.categories.length > 0 ? request.categories.join(",") : "4d4b7105d754a06374d81259", limit: 50};
-    if(request.search){
-        parameters.query = request.search;
-    }
-    const searchResults = await foursquare.search(parameters);
-
-    let allChoices = searchResults.response.venues;
-
     if(!request.needsMoreInfo){ // If we don't need more info, we can choose from this info and send it
-        response.send(allChoices.randomElement);
+        response.send(request.searchResults.randomElement);
         return;
     }
 
     // Otherwise, we have to go get more info
-    allChoices.shuffle();
+    request.searchResults.shuffle();
     
     const IDKey = "id";
-    while(allChoices.length > 0){
-
-        const choice = allChoices.shift();
-
+    while(request.searchResults.length > 0){
+        const choice = request.searchResults.shift();
         const cached = JSON.parse(await utilities.cache.get(choice[IDKey]));
         let dataIsFresh = false;
         if(cached){
@@ -110,14 +100,14 @@ random.responders.get = async function(request, response){
         let full = cached;
 
         if((request.openNow && !dataIsFresh) || !cached){ // We're gonna eventually download some new data, so we want this to get updated
-            allChoices.unshift(choice);
+            request.searchResults.unshift(choice);
         }
 
         if(request.openNow && !dataIsFresh){ // We have to get new data because the venue must be open and our cache data is stale
-            full = await downloadDataFor(allChoices.splice(0, foursquare.venueInfo.maximumVenues));
+            full = await downloadDataFor(request.searchResults.splice(0, foursquare.venueInfo.maximumVenues));
         }
         else if(!cached){ // We're downloading new data because this venue hasn't been cached yet
-            await downloadDataFor(await findCacheMisses(allChoices));
+            await downloadDataFor(await findCacheMisses(request.searchResults));
             continue;
         }
 
@@ -138,12 +128,21 @@ function floatingPointConvertible(value){
 }
 
 random.use(middleware.requireParameters({latitude: floatingPointConvertible, longitude: floatingPointConvertible, radius: floatingPointConvertible}));
+
+// Parameter parsing
 random.use((request, response, next) => {
-    request.categories = request.query.categories ? request.query.categories.split(",") : [];
+    const geographicalRoundingDecimalPlaces = 4;
+    request.latitude = request.latitude.toFixed(geographicalRoundingDecimalPlaces);
+    request.longitude = request.longitude.toFixed(geographicalRoundingDecimalPlaces);
+    request.categories = request.query.categories ? request.query.categories.split(",") : ["4d4b7105d754a06374d81259"];
+    for(let index = 0; index < request.categories.length; index++){
+        request.categories[index] = request.categories[index].trim();
+    }
+    request.categories = request.categories.join(",");
     request.openNow = utilities.parseBool(request.query.openNow);
+    request.search = request.query.search;
     request.price = new Set();
     request.query.price = request.query.price || "";
-    request.search = request.query.search;
     for(const point of request.query.price.split(",")){
         const num = parseInt(point.trim());
         if(num && num >= 1 && num <= 4){
@@ -152,6 +151,37 @@ random.use((request, response, next) => {
     }
     request.needsPriceInfo = request.price.size > 0 && request.price.size < 4; // The lowest possible price is 1, the highest is 4. An empty set or a full set means we don't need price info
     request.needsMoreInfo = request.needsPriceInfo || request.openNow; // We'll need more info either if the venue must be open or if price info is necessary
+    next();
+});
+
+// Searching
+
+random.use(async (request, response, next) => {
+    // This is a serialization of a search request into a redis key in the format "latitude:longitude:radius:categories:searchquery?"
+    let key = `${request.latitude}:${request.longitude}:${request.radius}:${request.categories}`;
+    if(request.search){
+        key += `:${request.search}`;
+    }
+
+    console.info(key);
+
+    const cached = await utilities.cache.get(key);
+    if(cached){
+        console.info("Loading search from cache");
+        request.searchResults = JSON.parse(cached);
+    }
+    else{ // We gotta hit the network because the search isn't cached
+        console.info("Downloading search results");
+        const parameters = {latitude: request.latitude, longitude: request.longitude, radius: request.radius, intent: "browse", categoryId: request.categories, limit: 50};
+        if(request.search){
+            parameters.query = request.search;
+        }
+
+        const results = await foursquare.search(parameters);
+        request.searchResults = results.response.venues;
+        utilities.cache.set(key, JSON.stringify(request.searchResults));
+    }
+
     next();
 });
 
