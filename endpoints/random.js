@@ -163,15 +163,11 @@ random.use(async (request, response, next) => {
         key += `:${request.search}`;
     }
 
-    console.info(key);
-
     const cached = await utilities.cache.get(key);
     if(cached){
-        console.info("Loading search from cache");
         request.searchResults = JSON.parse(cached);
     }
     else{ // We gotta hit the network because the search isn't cached
-        console.info("Downloading search results");
         const parameters = {latitude: request.latitude, longitude: request.longitude, radius: request.radius, intent: "browse", categoryId: request.categories, limit: 50};
         if(request.search){
             parameters.query = request.search;
