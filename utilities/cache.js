@@ -15,7 +15,7 @@ if(socketPath){
 
 const cache = redis.createClient(config);
 
-module.exports.defaultLifetime = 604800;
+module.exports.defaultLifetime = 86400; // Foursquare's required maximum cache age is 24 hours
 
 module.exports.get = cache.getAsync.boundTo(cache);
 
