@@ -20,7 +20,7 @@ module.exports.defaultLifetime = 86400; // Foursquare's required maximum cache a
 module.exports.get = cache.getAsync.boundTo(cache);
 
 module.exports.set = (key, value, timeout = module.exports.defaultLifetime) => {
-    cache.set(key, value, "EX", timeout); // We want to expire all keys after they live for a week, unless otherwise specified
+    cache.set(key, value, "EX", timeout); // We want to expire all keys after they live for a day, unless otherwise specified
 };
 
 module.exports.cacheLifeRemaining = cache.ttlAsync.boundTo(cache);
