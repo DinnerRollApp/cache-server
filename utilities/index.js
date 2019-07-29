@@ -32,3 +32,5 @@ module.exports.parseBool = (value) => {
     }
     return NaN; // NaN is a resonable default error value, as it is unique enough to signal an error, but is falsey
 };
+// Pulled from https://developer.foursquare.com/docs/api/configuration/internationalization on July 20, 2019
+module.exports.supportedLanguageCodes = ["en", "es", "fr", "de", "it", "ja", "th", "tr", "ko", "ru", "pt", "id"];

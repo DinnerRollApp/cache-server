@@ -3,7 +3,7 @@
 const request = require("request-promise-native");
 const {constructRequest} = require("./request-builder.js");
 
-module.exports = async (venues) => {
+module.exports = async (venues, language) => {
     if(typeof venues === "string"){ // Only one venue was passed, so we can just call the API directly
         return await request(constructRequest(venues));
     }
@@ -12,7 +12,7 @@ module.exports = async (venues) => {
         for(const venue of venues){
             chain += `/venues/${venue instanceof Object ? venue.id : venue},`
         }
-        const response = await request(constructRequest("", {requests: chain.slice(0, -1)}, "multi"));
+        const response = await request(constructRequest("", {requests: chain.slice(0, -1)}, language ? {"Accept-Language": language} : null, "multi"));
         let results = [];
         for(const venue of response["response"]["responses"]){
             results.push(venue["response"]["venue"]);

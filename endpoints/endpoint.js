@@ -1,6 +1,5 @@
 "use strict";
 
-const utilities = require("../utilities");
 const defaultMiddleware = require("./middleware.js");
 
 const instanceTest = "EndpointObject";

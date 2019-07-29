@@ -47,8 +47,7 @@ module.exports.matchesRequiredParameters = function(request, response, next){
             request[key] = request.query[key];
         }
         else{
-            next(new RequestError(`The parameter "${key}" did not match the required value`));
-            return;
+            return next(new RequestError(`The parameter "${key}" did not match the required value`));
         }
     }
     next();
@@ -56,4 +55,9 @@ module.exports.matchesRequiredParameters = function(request, response, next){
 
 module.exports.sendError = (error, request, response, next) => {
     response.status(typeof error.status === "number" ? error.status : HTTPStatus.INTERNAL_SERVER_ERROR).send({error: error.message});
+};
+
+module.exports.requireLocalization = (request, response, next) => {
+    response.language = request.acceptsLanguages(utilities.supportedLanguageCodes) || "en";
+    next();
 };

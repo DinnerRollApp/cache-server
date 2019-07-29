@@ -9,19 +9,24 @@ const HTTPStatus = require("http-status-codes");
 
 const random = new Endpoint("random");
 
-function addVenueToCache(venue){
-    utilities.cache.set(venue["id"], JSON.stringify(venue));
+function venueCacheKey(venue, language){
+    return `${venue.id}:${language}`;
 }
 
-async function downloadDataFor(venues){
+function addVenueToCache(venue, language){
+    utilities.cache.set(venueCacheKey(venue, language), JSON.stringify(venue));
+}
+
+async function downloadDataFor(venues, language){
     try{
-        const result = await foursquare.venueInfo(venues);
-        //return result;
+        const result = await foursquare.venueInfo(venues, language);
         if(Array.isArray(result)){
-            result.forEach(addVenueToCache);
+            for(const venue of result){
+                addVenueToCache(venue, language);
+            }
         }
         else{
-            addVenueToCache(result);
+            addVenueToCache(result, language);
         }
         return result;
     }
@@ -68,69 +73,28 @@ function chooseRestaurantFrom(venues, request, shouldShuffle = false){
     return null;
 }
 
-async function findCacheMisses(choices, startIndex = 0){
+async function findCacheMisses(choices, language, startIndex = 0){
     const misses = [];
     for(let index = startIndex; index < choices.length && misses.length < foursquare.venueInfo.maximumVenues; index++){
-        const id = choices[index]["id"];
-        const cached = await utilities.cache.get(id);
+        const cached = await utilities.cache.get(venueCacheKey(choices[index], language));
         if(!cached){
-            misses.push(id);
+            misses.push(choices[index].id);
         }
     }
     return misses;
 }
-
-random.responders.get = async function(request, response){
-    if(!request.needsMoreInfo){ // If we don't need more info, we can choose from this info and send it
-        response.send(request.searchResults.randomElement);
-        return;
-    }
-
-    // Otherwise, we have to go get more info
-    request.searchResults.shuffle();
-    
-    const IDKey = "id";
-    while(request.searchResults.length > 0){
-        const choice = request.searchResults.shift();
-        const cached = JSON.parse(await utilities.cache.get(choice[IDKey]));
-        let dataIsFresh = false;
-        if(cached){
-            dataIsFresh = await utilities.cache.wasSetRecently(choice[IDKey], (new Date().getTime() / 1000) % 60); // Data is fresh if it was set during the current minute
-        }
-        let full = cached;
-
-        if((request.openNow && !dataIsFresh) || !cached){ // We're gonna eventually download some new data, so we want this to get updated
-            request.searchResults.unshift(choice);
-        }
-
-        if(request.openNow && !dataIsFresh){ // We have to get new data because the venue must be open and our cache data is stale
-            full = await downloadDataFor(request.searchResults.splice(0, foursquare.venueInfo.maximumVenues));
-        }
-        else if(!cached){ // We're downloading new data because this venue hasn't been cached yet
-            await downloadDataFor(await findCacheMisses(request.searchResults));
-            continue;
-        }
-
-        full = chooseRestaurantFrom(full, request);
-        if(full){
-            response.send(full);
-            return;
-        }
-    }
-
-    // If we made it here, nothing was found :(
-    response.status(HTTPStatus.NOT_FOUND).send({error: "Nothing matching that search could be found"});
-};
 
 function floatingPointConvertible(value){
     const result = parseFloat(value);
     return isNaN(result) ? new ValidationError("should be convertible to a floating-point number") : result;
 }
 
-random.use(middleware.requireParameters({latitude: floatingPointConvertible, longitude: floatingPointConvertible, radius: floatingPointConvertible}));
+random.middleware.push(middleware.requireLocalization);
+
+random.middleware.push(middleware.requireParameters({latitude: floatingPointConvertible, longitude: floatingPointConvertible, radius: floatingPointConvertible}));
 
 // Parameter parsing
-random.use((request, response, next) => {
+random.middleware.push((request, response, next) => {
     const geographicalRoundingDecimalPlaces = 4;
     request.latitude = request.latitude.toFixed(geographicalRoundingDecimalPlaces);
     request.longitude = request.longitude.toFixed(geographicalRoundingDecimalPlaces);
@@ -156,9 +120,9 @@ random.use((request, response, next) => {
 
 // Searching
 
-random.use(async (request, response, next) => {
-    // This is a serialization of a search request into a redis key in the format "latitude:longitude:radius:categories:searchquery?"
-    let key = `${request.latitude}:${request.longitude}:${request.radius}:${request.categories}`;
+random.middleware.push(async (request, response, next) => {
+    // This is a serialization of a search request into a redis key in the format "latitude:longitude:radius:categories:language:searchquery?"
+    let key = `${request.latitude}:${request.longitude}:${request.radius}:${request.categories}:${response.language}`;
     if(request.search){
         key += `:${request.search}`;
     }
@@ -173,12 +137,57 @@ random.use(async (request, response, next) => {
             parameters.query = request.search;
         }
 
-        const results = await foursquare.search(parameters);
+        const results = await foursquare.search(parameters, response.language);
         request.searchResults = results.response.venues;
         utilities.cache.set(key, JSON.stringify(request.searchResults));
     }
 
     next();
 });
+
+random.responders.get = async function(request, response){
+    if(!request.needsMoreInfo){ // If we don't need more info, we can choose from this info and send it
+        response.header("Content-Language", response.language).send(request.searchResults.randomElement);
+        return;
+    }
+
+    // Otherwise, we have to go get more info
+    request.searchResults.shuffle();
+    
+    const IDKey = "id";
+    while(request.searchResults.length > 0){
+        const choice = request.searchResults.shift();
+        const localizedIDKey = `${choice[IDKey]}:${response.language}`;
+        const cached = JSON.parse(await utilities.cache.get(localizedIDKey));
+        let dataIsFresh = false;
+        if(cached){
+            dataIsFresh = await utilities.cache.wasSetRecently(localizedIDKey, (new Date().getTime() / 1000) % 60); // Data is fresh if it was set during the current minute
+        }
+
+        let full = cached;
+
+        if((request.openNow && !dataIsFresh) || !cached){ // We're gonna eventually download some new data, so we want this to get updated
+            request.searchResults.unshift(choice);
+        }
+
+        if(request.openNow && !dataIsFresh){ // We have to get new data because the venue must be open and our cache data is stale
+            full = await downloadDataFor(request.searchResults.splice(0, foursquare.venueInfo.maximumVenues), response.language);
+        }
+        else if(!cached){ // We're downloading new data because this venue hasn't been cached yet
+            await downloadDataFor(await findCacheMisses(request.searchResults, response.language), response.language);
+            continue;
+        }
+
+        full = chooseRestaurantFrom(full, request);
+
+        if(full){
+            response.header("Content-Language", response.language).send(full);
+            return;
+        }
+    }
+
+    // If we made it here, nothing was found :(
+    response.status(HTTPStatus.NOT_FOUND).header("Content-Language", response.language).send({error: "Nothing matching that search could be found"});
+};
 
 module.exports = random;

@@ -1,7 +1,6 @@
 "use strict";
 
 const express = require("express");
-const filesystem = require("fs");
 const dinnerRoll = require("./endpoints");
 
 const app = express();
