@@ -89,6 +89,10 @@ function floatingPointConvertible(value){
     return isNaN(result) ? new ValidationError("should be convertible to a floating-point number") : result;
 }
 
+function headerForLanguage(language){
+    return {"Cache-Control": "no-store", "Content-Language": language};
+}
+
 random.middleware.push(middleware.requireLocalization);
 
 random.middleware.push(middleware.requireParameters({latitude: floatingPointConvertible, longitude: floatingPointConvertible, radius: floatingPointConvertible}));
@@ -147,7 +151,7 @@ random.middleware.push(async (request, response, next) => {
 
 random.responders.get = async function(request, response){
     if(!request.needsMoreInfo){ // If we don't need more info, we can choose from this info and send it
-        response.header("Content-Language", response.language).send(request.searchResults.randomElement);
+        response.header(headerForLanguage(response.language)).send(request.searchResults.randomElement);
         return;
     }
 
@@ -181,13 +185,13 @@ random.responders.get = async function(request, response){
         full = chooseRestaurantFrom(full, request);
 
         if(full){
-            response.header("Content-Language", response.language).send(full);
+            response.header(headerForLanguage(response.language)).send(full);
             return;
         }
     }
 
     // If we made it here, nothing was found :(
-    response.status(HTTPStatus.NOT_FOUND).header("Content-Language", response.language).send({error: "Nothing matching that search could be found"});
+    response.status(HTTPStatus.NOT_FOUND).header(headerForLanguage(response.language)).send({error: "Nothing matching that search could be found"});
 };
 
 module.exports = random;

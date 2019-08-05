@@ -31,7 +31,12 @@ function format(data, response){
         }
     }
     return all;
-};
+}
+
+function headerForLanguage(language){
+    // Foursquare allows caching data up to 24 hours
+    return {"Cache-Control": "public, max-age=86400", "Content-Language": language};
+}
 
 module.exports = new Endpoint("categories");
 
@@ -43,7 +48,7 @@ module.exports.middleware.push(async (request, response, next) => {
     const cached = await utilities.cache.get(categoriesCacheKeyForResponse(response));
     if(cached){
         // Send the cached version
-        response.type(responseType).header("Content-Language", response.language).send(cached);
+        response.type(responseType).header(headerForLanguage(response.language)).send(cached);
     }
     else{
         // Cache miss
@@ -57,5 +62,5 @@ module.exports.responders.get = async function(request, response){
         return category.id === "4d4b7105d754a06374d81259" || category.name.toUpperCase() === "FOOD";
     })[0]), response);
     utilities.cache.set(categoriesCacheKeyForResponse(response), result);
-    response.type(responseType).header("Content-Language", response.language).send(result);
+    response.type(responseType).header(headerForLanguage(response.language)).send(result);
 };

@@ -6,5 +6,6 @@ const supportedCodes = require("../utilities").supportedLanguageCodes;
 module.exports = new Endpoint("locales");
 
 module.exports.responders.get = function(request, response) {
-    response.json(supportedCodes);
+    // Caching up to a week is ok
+    response.header("Cache-Control", "public, max-age=604800").json(supportedCodes);
 }

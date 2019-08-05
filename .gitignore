@@ -173,3 +173,6 @@ caches/*
 
 # Visual Studio Code configuration files
 .vscode/settings.json
+
+# Test databases
+*.rdb
