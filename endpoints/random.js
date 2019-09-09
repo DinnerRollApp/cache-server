@@ -158,10 +158,9 @@ random.responders.get = async function(request, response){
     // Otherwise, we have to go get more info
     request.searchResults.shuffle();
     
-    const IDKey = "id";
     while(request.searchResults.length > 0){
         const choice = request.searchResults.shift();
-        const localizedIDKey = `${choice[IDKey]}:${response.language}`;
+        const localizedIDKey = `${choice["id"]}:${response.language}`;
         const cached = JSON.parse(await utilities.cache.get(localizedIDKey));
         let dataIsFresh = false;
         if(cached){
