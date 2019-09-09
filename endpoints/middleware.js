@@ -58,6 +58,6 @@ module.exports.sendError = (error, request, response, next) => {
 };
 
 module.exports.requireLocalization = (request, response, next) => {
-    response.language = request.acceptsLanguages(utilities.supportedLanguageCodes) || "en";
+    response.language = request.acceptsLanguages(utilities.supportedLanguageCodes) || "en_US";
     next();
 };

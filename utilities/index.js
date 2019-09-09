@@ -27,10 +27,9 @@ module.exports.parseBool = (value) => {
             }
             break;
     }
-    if(value === null){
-        return false; // Null is falsey, but it isn't caught by a typeof block, so we need to explicitly check for it
-    }
-    return NaN; // NaN is a resonable default error value, as it is unique enough to signal an error, but is falsey
+    // Null is falsey, but it isn't caught by a typeof block, so we need to explicitly check for it
+    // NaN is a resonable default error value, as it is unique enough to signal an error, but is falsey
+    return value === null ? false : NaN;
 };
-// Pulled from https://developer.foursquare.com/docs/api/configuration/internationalization on July 20, 2019
-module.exports.supportedLanguageCodes = ["en", "es", "fr", "de", "it", "ja", "th", "tr", "ko", "ru", "pt", "id"];
+// Pulled from https://www.yelp.com/developers/documentation/v3/supported_locales on September 8, 2019
+module.exports.supportedLanguageCodes = ["cs_CZ", "da_DK", "de_AT", "de_CH", "de_DE", "en_AU", "en_BE", "en_CA", "en_CH", "en_GB", "en_HK", "en_IE", "en_MY", "en_NZ", "en_PH", "en_SG", "en_US", "es_AR", "es_CL", "es_ES", "es_MX", "fi_FI", "fil_PH", "fr_BE", "fr_CA", "fr_CH", "fr_FR", "it_CH", "it_IT", "ja_JP", "ms_MY", "nb_NO", "nl_BE", "nl_NL", "pl_PL", "pt_BR", "pt_PT", "sv_FI", "sv_SE", "tr_TR", "zh_HK", "zh_TW"];
