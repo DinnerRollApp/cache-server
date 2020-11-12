@@ -1,13 +1,14 @@
 "use strict";
 
 const {Endpoint} = require("./endpoint.js");
-const foursquare = require("../foursquare");
+const tree = require("un-flatten-tree");
 const utilities = require("../utilities");
+const yelp = require("yelp-fusion").client(utilities.environment.valueForKey("yelp_bearer_token"));
 const defaultMiddleware = require("./middleware.js");
 
 const categoriesKey = "categories"
 
-function categoriesCacheKeyForResponse(response) {
+function categoriesCacheKeyForResponse(response){
     let key = categoriesKey;
 
     if(response.language){
@@ -15,22 +16,6 @@ function categoriesCacheKeyForResponse(response) {
     }
 
     return key;
-}
-
-function format(data, response){
-    const categories = data[categoriesKey];
-    let all = [];
-    if(Array.isArray(categories)){
-        for(const category of categories){
-            if(category.icon){
-                category.icon = category.icon.prefix + category.icon.suffix;
-            }
-            all = all.concat(format(category));
-            delete category[categoriesKey];
-            all.push(category);
-        }
-    }
-    return all;
 }
 
 function headerForLanguage(language){
@@ -57,10 +42,22 @@ module.exports.middleware.push(async (request, response, next) => {
 });
 
 module.exports.responders.get = async function(request, response){
-    const rawData = await foursquare.categories(response.language); // The below syntax gets weird at runtime with an inline await
-    const result = JSON.stringify(format(rawData["response"][categoriesKey].filter((category) => {
-        return category.id === "4d4b7105d754a06374d81259" || category.name.toUpperCase() === "FOOD";
-    })[0]), response);
-    utilities.cache.set(categoriesCacheKeyForResponse(response), result);
+    const rawData = (await yelp.allCategories({locale: response.language}))["jsonBody"]["categories"];
+    // Yelp's data comes in as a weird flat tree that we need to construct to properly find all children of the "restaurants" or "food" categories
+    let dataTree = tree.unflatten(rawData, (category, parent) => category.parent_aliases.includes(parent.alias), (category, parent) => parent.children.push(category), (category) => {
+        if (!category.children) {
+            category.children = [];
+        }
+        return category;
+    }).filter((category) => module.exports.responders.get.isTopLevelEatery(category)); // Once it's constructed, we want to remove anything that isn't a food category
+    
+    const result = tree.flatten(dataTree, (category) => category.children, (category) => {
+        return {alias: category.alias, name: category.title}; // All we need to send the frontend is the alias and the name
+    }).filter((category) => !module.exports.responders.get.isTopLevelEatery(category)); // Once we have the data we want, we don't need to send the 2 highest-level food categories that all the others inherit from
+    utilities.cache.set(categoriesCacheKeyForResponse(response), JSON.stringify(result));
     response.type(responseType).header(headerForLanguage(response.language)).send(result);
 };
+
+module.exports.responders.get.isTopLevelEatery = function(category){
+    return category.alias === "restaurants" || category.alias === "food";
+}

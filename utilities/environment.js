@@ -2,17 +2,14 @@
 
 const envalid = require("envalid");
 
-const keyPrefix = "DINNERROLL_";
-
 function keyForBase(base){
-    return base.toUpperCase().trim().replace(/\s+/g, "_"); // Capitalize, trim whitespace from the edges, and replace any whitespace in the middle with underscores
+    return "DINNERROLL_" + base.toUpperCase().trim().replace(/\s+/g, "_"); // Capitalize, trim whitespace from the edges, and replace any whitespace in the middle with underscores
 }
 
 let expectation = {};
 expectation[keyForBase("VERSION")] = envalid.num({default: 1, desc: "The current external version of the API, used to test frontend compatiblility", example: 1});
 expectation[keyForBase("SECRET")] = envalid.str({desc: "Client secret to add a little more than just security by obscurity"});
-expectation[keyForBase("FOURSQUARE_CLIENT_ID")] = envalid.str({desc: "Client ID to interface with the Foursquare API"});
-expectation[keyForBase("FOURSQUARE_CLIENT_SECRET")] = envalid.str({desc: "Client secret to interface with the Foursquare API"});
+expectation[keyForBase("YELP_BEARER_TOKEN")] = envalid.str({desc: "Authorization token to interface with the Yelp API"});
 expectation[keyForBase("REDIS_PASSWORD")] = envalid.str({desc: "Password to authenticate with the Redis instance", devDefault: undefined});
 expectation[keyForBase("REDIS_SOCKET")] = envalid.makeValidator((value) => {
     value = value.trim();

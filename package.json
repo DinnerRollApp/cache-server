@@ -15,7 +15,9 @@
     "node-redis": "^0.1.7",
     "redis": "^2.8.0",
     "request": "^2.88.0",
-    "request-promise-native": "^1.0.7"
+    "request-promise-native": "^1.0.7",
+    "un-flatten-tree": "^2.0.12",
+    "yelp-fusion": "^3.0.0"
   },
   "engines": {
     "node": ">=9.0.0"
